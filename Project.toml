@@ -1,0 +1,24 @@
+name = "RETCore"
+uuid = "829dbb54-67d1-47e0-b31d-e94819d42def"
+version = "0.1.0"
+authors = ["Luis <luis.domenech@uchceu.es>"]
+
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FlexiChains = "4a37a8b9-6e57-4b92-8664-298d46e639f7"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
+
+[compat]
+Distributions = "0.25.129"
+FlexiChains = "0.6.33"
+LaTeXStrings = "1.4.0"
+Plots = "1.41.6"
+Random = "1.11.0"
+Statistics = "1.11.1"
+StatsBase = "0.34.12"
+Turing = "0.46.0"
