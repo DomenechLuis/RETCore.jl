@@ -18,7 +18,7 @@ function plot!(
         for i in idx
             plot!(
                 p,
-                10.0 .^ (
+                exp10.(
                     fo.chains[@varname(b)][i, j] .+
                     fo.chains[@varname(m)][i, j] .* log10.(v_lines)
                 ),

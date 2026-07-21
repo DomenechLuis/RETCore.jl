@@ -104,7 +104,7 @@ function plot_means!(
 
     plot!(
         p,
-        10.0 .^ (b_mean .+ m_mean .* log10.(v_array)),
+        exp10.(b_mean .+ m_mean .* log10.(v_array)),
         v_array;
         label = false,
         kwargs_mode...,
@@ -117,7 +117,7 @@ function plot_means!(
         pred = b_mean + m_mean*log10(vi)
 
         d = quantile.(Exponential(l_mean), q)
-        n = 10.0 .^ (pred .- d)
+        n = exp10.(pred .- d)
 
         dens = pdf.(Exponential(l_mean), d)
         dens ./= maximum(dens)

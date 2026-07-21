@@ -121,7 +121,7 @@ function plot_means!(
     # línea modal
     plot!(
         p,
-        10.0 .^ (b_mean .+ m_mean .* log10.(v_array)),
+        exp10.(b_mean .+ m_mean .* log10.(v_array)),
         v_array;
         label = false,
         kwargs_mode...,

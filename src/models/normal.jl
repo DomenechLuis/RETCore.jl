@@ -104,14 +104,14 @@ function plot_means!(
 
     plot!(
         p,
-        10.0 .^ (b_mean .+ m_mean .* log10.(v_array)),
+        exp10.(b_mean .+ m_mean .* log10.(v_array)),
         v_array;
         label = false,
         kwargs_mean...,
     )
 
     for vi in v_array[1:(end-1)]
-        N = 10.0 .^ (collect(range(-3, 3, curve_res))*s_mean .+ (b_mean + m_mean*log10(vi)))
+        N = exp10.(collect(range(-3, 3, curve_res))*s_mean .+ (b_mean + m_mean*log10(vi)))
         v =
             vi*(
                 1 .+
