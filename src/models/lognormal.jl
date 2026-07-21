@@ -1,4 +1,4 @@
-@model function lognormal_linear_model(v, n, v_censored, n_censored ; prior = prior_default(normal_linear_model))
+@model function lognormal_linear_model(v, n, v_censored, n_censored ; prior = prior_default(lognormal_linear_model))
 
     a ~ prior.a
     m ~ prior.m
@@ -35,15 +35,48 @@ end
 
 function prior_default(::typeof(lognormal_linear_model))
     return (
-        a = Normal(30, 10),
-        m = truncated(Normal(0, 12), -Inf, 0.0),
-        s = Exponential(3),
-        l = Normal(0, 3)
+        a = Normal(25, 10),
+        m = truncated(Normal(-5, 2.0), -Inf, 0.0),
+        s = Exponential(1.0),
+        l = Normal(0, 3.0)
     )
 end
-   
 
+function prior_wide(::typeof(lognormal_linear_model))
+	return (
+		a = Normal(25, 20),
+		m = truncated(Normal(-5, 5.0), -Inf, 0.0),
+		s = Exponential(1.0),
+		l = Normal(0, 6.0)
+	)
+end
 
+function prior_optimistic(::typeof(lognormal_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-1.5, 1.0), -Inf, 0.0),
+        s = Exponential(1.0),
+		l = Normal(0, 3.0)
+    )
+end
+
+function prior_pessimistic(::typeof(lognormal_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-12.0, 2.0), -Inf, 0.0),
+        s = Exponential(1.0),
+		l = Normal(0, 3.0)
+    )
+end
+
+function prior_high_scatter(::typeof(lognormal_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-5.0, 2.0), -Inf, 0.0),
+        s = Exponential(5),
+		l = Normal(0, 3.0)
+    )
+end
 
 function prepare_data!(fo::FitObject{typeof(lognormal_linear_model)})
     return preparedata_standard!(fo)

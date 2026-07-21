@@ -1,8 +1,8 @@
-@model function exponential_linear_model(v, n, v_censored, n_censored)
+@model function exponential_linear_model(v, n, v_censored, n_censored; prior = prior_default(exponential_linear_model))
 
-    a ~ Normal(10, 10)
-    m ~ truncated(Normal(0, 12), -Inf, 0.0)
-    l ~ Exponential(1)
+	a ~ prior.a
+    m ~ prior.m
+    l ~ prior.l
 
     @inbounds for i in eachindex(v)
         pred = a + m*v[i]
@@ -31,6 +31,46 @@ function prepare_data!(fo::FitObject{typeof(exponential_linear_model)})
     return preparedata_standard!(fo)
 end
 
+
+function prior_default(::typeof(exponential_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-5, 2.0), -Inf, 0.0),
+        l = Exponential(1.0),
+    )
+end
+
+function prior_wide(::typeof(exponential_linear_model))
+    return (
+        a = Normal(25, 20),
+        m = truncated(Normal(-5.0, 5.0), -Inf, 0.0),
+        l = Exponential(1.0),
+    )
+end
+
+function prior_optimistic(::typeof(exponential_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-1.5, 1.0), -Inf, 0.0),
+        l = Exponential(1.0),
+    )
+end
+
+function prior_pessimistic(::typeof(exponential_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-12.0, 2.0), -Inf, 0.0),
+        l = Exponential(1.0),
+    )
+end
+
+function prior_high_scatter(::typeof(exponential_linear_model))
+    return (
+        a = Normal(25, 10),
+        m = truncated(Normal(-5.0, 2.0), -Inf, 0.0),
+        l = Exponential(5),
+    )
+end
 
 
 function plot_means!(
