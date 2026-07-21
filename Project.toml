@@ -22,3 +22,7 @@ Random = "1.11.0"
 Statistics = "1.11.1"
 StatsBase = "0.34.12"
 Turing = "0.46.0"
+
+
+[targets]
+test = ["Test"]
