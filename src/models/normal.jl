@@ -73,7 +73,7 @@ function prepare_data!(fo::FitObject{typeof(normal_linear_model)})
 end
 
 
-function quantile(fo::FitObject{typeof(normal_linear_model)}, prob::Real, v::Real)
+function log_log_quantile(fo::FitObject{typeof(normal_linear_model)}, prob::Real, logv::Real)
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 
@@ -81,7 +81,7 @@ function quantile(fo::FitObject{typeof(normal_linear_model)}, prob::Real, v::Rea
     m = fo.chains[@varname(m)]
     s = fo.chains[@varname(s)]
 
-    q = quantile.(Normal.(b + m * v, s), prob)
+    q = quantile.(Normal.(b + m * logv, s), prob)
 
     return q
 end

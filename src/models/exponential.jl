@@ -31,7 +31,7 @@ function prepare_data!(fo::FitObject{typeof(exponential_linear_model)})
     return preparedata_standard!(fo)
 end
 
-function quantile(fo::FitObject{typeof(exponential_linear_model)}, prob::Real, v::Real)
+function log_log_quantile(fo::FitObject{typeof(exponential_linear_model)}, prob::Real, logv::Real)
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 
@@ -39,7 +39,7 @@ function quantile(fo::FitObject{typeof(exponential_linear_model)}, prob::Real, v
     m = fo.chains[@varname(m)]
     l = fo.chains[@varname(l)]
 
-    q = b .+ m .* v .- quantile.(Exponential.(l), 1.0 - prob)
+    q = b .+ m .* logv .- quantile.(Exponential.(l), 1.0 - prob)
 
     return q
 end
