@@ -1,17 +1,10 @@
 
-function quantile(fo::FitObject, prob::Real, v::AbstractVector{<:Real})
-    0.0 < prob < 1.0 || throw(ArgumentError("prob must be between 0 and 1"))
 
-    all(value -> isfinite(value) && value > 0, v) ||
-        throw(ArgumentError("all velocities must be finite and strictly positive"))
-
-    return [quantile(fo, prob, vi) for vi in v]
-end
 function quantile(fo::FitObject, prob::Real, v::Real)
     0.0 < prob < 1.0 || throw(ArgumentError("prob must be between 0 and 1"))
     isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
 
-    return exp10.(log_log_quantile(fo, prob, log10(v)))
+    return exp10(log_log_quantile(fo, prob, log10(v)))
 end
 
 function quantile(fo::FitObject, prob::Real, v::AbstractVector{<:Real})
