@@ -48,22 +48,12 @@ function plot!(
     censored_kwargs = (markershape = :x, label = ""),
 )
 
-	if !isempty(dataobject.v)
-		scatter!(
-			p,
-			dataobject.N,
-			dataobject.v;
-			data_kwargs...
-		)
-	end
+    if !isempty(dataobject.v)
+        scatter!(p, dataobject.N, dataobject.v; data_kwargs...)
+    end
 
     if !isempty(dataobject.v_censored)
-        scatter!(
-            p,
-            dataobject.N_censored,
-            dataobject.v_censored;
-            censored_kwargs...
-        )
+        scatter!(p, dataobject.N_censored, dataobject.v_censored; censored_kwargs...)
     end
 
     return p
@@ -74,16 +64,11 @@ function plot(
     dataobject::DataObject;
     data_kwargs = NamedTuple(),
     censored_kwargs = (markershape = :x, label = ""),
-    kwargs...
+    kwargs...,
 )
 
     p = Plots.plot(; kwargs...)
-    plot!(
-        p,
-        dataobject;
-        data_kwargs = data_kwargs,
-        censored_kwargs = censored_kwargs,
-    )
+    plot!(p, dataobject; data_kwargs = data_kwargs, censored_kwargs = censored_kwargs)
 
     return p
 end
@@ -104,16 +89,12 @@ function plot!(
     elseif data_kwargs isa NamedTuple
         data_kwargs = fill(data_kwargs, n)
     else
-        length(data_kwargs) == n ||
-            throw(ArgumentError("data_kwargs must have length $n"))
+        length(data_kwargs) == n || throw(ArgumentError("data_kwargs must have length $n"))
     end
 
     # Normaliza censored_kwargs
     if isnothing(censored_kwargs)
-        censored_kwargs = fill(
-            (markershape = :x, label = ""),
-            n,
-        )
+        censored_kwargs = fill((markershape = :x, label = ""), n)
     elseif censored_kwargs isa NamedTuple
         censored_kwargs = fill(censored_kwargs, n)
     else
@@ -139,29 +120,85 @@ function plot(
     dataobjects::AbstractVector{<:DataObject};
     data_kwargs = nothing,
     censored_kwargs = nothing,
-    kwargs...
+    kwargs...,
 )
 
     p = Plots.plot(; kwargs...)
 
-    plot!(
-        p,
-        dataobjects;
-        data_kwargs = data_kwargs,
-        censored_kwargs = censored_kwargs,
-    )
+    plot!(p, dataobjects; data_kwargs = data_kwargs, censored_kwargs = censored_kwargs)
 
     return p
 end
 
 
-v_aeronordic = [107.81, 108.7, 109.58, 110.46, 111.35, 112.23, 113.11, 114.0, 114.88, 115.76, 116.65, 117.53, 118.41, 119.3, 120.18, 121.06, 121.95, 122.83, 123.71, 124.6, 125.48, 126.36, 127.25, 128.13, 129.01, 129.9, 130.78, 131.66, 132.55, 133.43, 134.31, 135.2, 136.08, 136.96, 137.85, 138.73, 139.61, 140.5, 141.38, 142.26, 143.15, 144.03, 144.91, 145.8, 146.68, 147.56, 148.45, 149.33, 150.21, 151.1, 151.98, 152.86, 153.75, 154.63, 155.51, 156.4, 157.28, 158.16, 159.05, 159.93]
+v_aeronordic = [
+    107.81,
+    108.7,
+    109.58,
+    110.46,
+    111.35,
+    112.23,
+    113.11,
+    114.0,
+    114.88,
+    115.76,
+    116.65,
+    117.53,
+    118.41,
+    119.3,
+    120.18,
+    121.06,
+    121.95,
+    122.83,
+    123.71,
+    124.6,
+    125.48,
+    126.36,
+    127.25,
+    128.13,
+    129.01,
+    129.9,
+    130.78,
+    131.66,
+    132.55,
+    133.43,
+    134.31,
+    135.2,
+    136.08,
+    136.96,
+    137.85,
+    138.73,
+    139.61,
+    140.5,
+    141.38,
+    142.26,
+    143.15,
+    144.03,
+    144.91,
+    145.8,
+    146.68,
+    147.56,
+    148.45,
+    149.33,
+    150.21,
+    151.1,
+    151.98,
+    152.86,
+    153.75,
+    154.63,
+    155.51,
+    156.4,
+    157.28,
+    158.16,
+    159.05,
+    159.93,
+]
 
 
 function capture_data(v_in, n_in, N_runout; v_array = v_aeronordic) #"v_array must be sorted"
 
     N_array = zeros(size(v_array)) .+ Inf
-    for (vi,ni) in zip(v_in,n_in)
+    for (vi, ni) in zip(v_in, n_in)
         ind = min(searchsortedfirst(v_array, vi), length(v_array))
 
         if N_array[ind] > ni
@@ -175,17 +212,6 @@ function capture_data(v_in, n_in, N_runout; v_array = v_aeronordic) #"v_array mu
         v_array[mask],
         N_array[mask],
         v_array[.!mask],
-        fill(N_runout, count(.!mask))
+        fill(N_runout, count(.!mask)),
     )
 end
-
-
-#=
-v = collect(1:5)
-N = collect(2:6)
-d1 = DataObject(v,N)
-d2 = DataObject(v,N)
-d3 = DataObject(v,N)
-dd=[d1,d2,d3]
-plot(dd)
-=#

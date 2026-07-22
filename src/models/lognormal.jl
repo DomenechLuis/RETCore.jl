@@ -1,4 +1,10 @@
-@model function lognormal_linear_model(v, n, v_censored, n_censored ; prior = prior_default(lognormal_linear_model))
+@model function lognormal_linear_model(
+    v,
+    n,
+    v_censored,
+    n_censored;
+    prior = prior_default(lognormal_linear_model),
+)
 
     a ~ prior.a
     m ~ prior.m
@@ -38,17 +44,17 @@ function prior_default(::typeof(lognormal_linear_model))
         a = Normal(25, 10),
         m = truncated(Normal(-5, 2.0), -Inf, 0.0),
         s = Exponential(1.0),
-        l = Normal(0, 3.0)
+        l = Normal(0, 3.0),
     )
 end
 
 function prior_wide(::typeof(lognormal_linear_model))
-	return (
-		a = Normal(25, 20),
-		m = truncated(Normal(-5, 5.0), -Inf, 0.0),
-		s = Exponential(1.0),
-		l = Normal(0, 6.0)
-	)
+    return (
+        a = Normal(25, 20),
+        m = truncated(Normal(-5, 5.0), -Inf, 0.0),
+        s = Exponential(1.0),
+        l = Normal(0, 6.0),
+    )
 end
 
 function prior_optimistic(::typeof(lognormal_linear_model))
@@ -56,7 +62,7 @@ function prior_optimistic(::typeof(lognormal_linear_model))
         a = Normal(25, 10),
         m = truncated(Normal(-1.5, 1.0), -Inf, 0.0),
         s = Exponential(1.0),
-		l = Normal(0, 3.0)
+        l = Normal(0, 3.0),
     )
 end
 
@@ -65,7 +71,7 @@ function prior_pessimistic(::typeof(lognormal_linear_model))
         a = Normal(25, 10),
         m = truncated(Normal(-12.0, 2.0), -Inf, 0.0),
         s = Exponential(1.0),
-		l = Normal(0, 3.0)
+        l = Normal(0, 3.0),
     )
 end
 
@@ -74,7 +80,7 @@ function prior_high_scatter(::typeof(lognormal_linear_model))
         a = Normal(25, 10),
         m = truncated(Normal(-5.0, 2.0), -Inf, 0.0),
         s = Exponential(5),
-		l = Normal(0, 3.0)
+        l = Normal(0, 3.0),
     )
 end
 
@@ -83,7 +89,11 @@ function prepare_data!(fo::FitObject{typeof(lognormal_linear_model)})
 end
 
 
-function log_log_quantile(fo::FitObject{typeof(lognormal_linear_model)}, prob::Real, logv::Real)
+function log_log_quantile(
+    fo::FitObject{typeof(lognormal_linear_model)},
+    prob::Real,
+    logv::Real,
+)
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 
@@ -92,8 +102,8 @@ function log_log_quantile(fo::FitObject{typeof(lognormal_linear_model)}, prob::R
     s = fo.chains[@varname(s)]
     l = fo.chains[@varname(l)]
 
-    mode = exp.(l - s.^2)
-    pred = b + m* logv
+    mode = exp.(l - s .^ 2)
+    pred = b + m * logv
 
     q = pred + mode - quantile.(LogNormal.(l, s), 1.0 - prob)
 
@@ -172,18 +182,19 @@ function exceedance_probability(
     b = fo.chains[@varname(b)]
     m = fo.chains[@varname(m)]
     s = fo.chains[@varname(s)]
-	l = fo.chains[@varname(l)]
+    l = fo.chains[@varname(l)]
 
-	z_mode = exp.(l - s.^2)
+    z_mode = exp.(l - s .^ 2)
 
     for chain_index in chain_indices
         @inbounds for sample_index in axes(b, 1)
-            
-			pred = b[sample_index, chain_index] + m[sample_index, chain_index]*v_log
 
-			z = pred + z_mode[sample_index, chain_index] .- N_log
+            pred = b[sample_index, chain_index] + m[sample_index, chain_index]*v_log
 
-            distribution = LogNormal(l[sample_index, chain_index], s[sample_index, chain_index])
+            z = pred + z_mode[sample_index, chain_index] .- N_log
+
+            distribution =
+                LogNormal(l[sample_index, chain_index], s[sample_index, chain_index])
 
             probability_sum .+= cdf.(Ref(distribution), z)
         end

@@ -13,7 +13,12 @@ using RETCore
     @test isempty(d.N_censored)
 
     @test_throws ArgumentError DataObject([1.0, 2.0], [10.0])
-    @test_throws ArgumentError DataObject([1.0, 2.0], [10.0, 20.0], [1.0], [10.0, 20.0, 30.0])
+    @test_throws ArgumentError DataObject(
+        [1.0, 2.0],
+        [10.0, 20.0],
+        [1.0],
+        [10.0, 20.0, 30.0],
+    )
 end
 
 @testset "vcat and capture_data" begin

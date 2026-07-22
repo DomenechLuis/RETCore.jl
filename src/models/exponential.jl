@@ -1,6 +1,12 @@
-@model function exponential_linear_model(v, n, v_censored, n_censored; prior = prior_default(exponential_linear_model))
+@model function exponential_linear_model(
+    v,
+    n,
+    v_censored,
+    n_censored;
+    prior = prior_default(exponential_linear_model),
+)
 
-	a ~ prior.a
+    a ~ prior.a
     m ~ prior.m
     l ~ prior.l
 
@@ -31,7 +37,11 @@ function prepare_data!(fo::FitObject{typeof(exponential_linear_model)})
     return preparedata_standard!(fo)
 end
 
-function log_log_quantile(fo::FitObject{typeof(exponential_linear_model)}, prob::Real, logv::Real)
+function log_log_quantile(
+    fo::FitObject{typeof(exponential_linear_model)},
+    prob::Real,
+    logv::Real,
+)
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 
@@ -156,15 +166,15 @@ function exceedance_probability(
 
     b = fo.chains[@varname(b)]
     m = fo.chains[@varname(m)]
-	l = fo.chains[@varname(l)]
+    l = fo.chains[@varname(l)]
 
 
     for chain_index in chain_indices
         @inbounds for sample_index in axes(b, 1)
-            
-			pred = b[sample_index, chain_index] + m[sample_index, chain_index]*v_log
 
-			d = pred .- N_log
+            pred = b[sample_index, chain_index] + m[sample_index, chain_index]*v_log
+
+            d = pred .- N_log
 
             distribution = Exponential(l[sample_index, chain_index])
 

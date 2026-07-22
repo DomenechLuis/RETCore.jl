@@ -20,7 +20,7 @@ function plot!(
                 p,
                 exp10.(
                     fo.chains[@varname(b)][i, j] .+
-                    fo.chains[@varname(m)][i, j] .* log10.(v_lines)
+                    fo.chains[@varname(m)][i, j] .* log10.(v_lines),
                 ),
                 v_lines;
                 alpha = 0.05,
@@ -211,8 +211,8 @@ end
 function plot_exceedance!(
     p::Plots.Plot,
     fo::FitObject;
-    v_range = (100.0,160.0),
-    N_range = (1e8,1e10),
+    v_range = (100.0, 160.0),
+    N_range = (1e8, 1e10),
     v_res::Int = 100,
     N_res::Int = 100,
     chains = :all,
@@ -243,8 +243,8 @@ function plot_exceedance!(
 end
 function plot_exceedance(
     fo::FitObject;
-    v_range = (100.0,160.0),
-    N_range = (1e8,1e10),
+    v_range = (100.0, 160.0),
+    N_range = (1e8, 1e10),
     v_res::Int = 100,
     N_res::Int = 100,
     chains = :all,
@@ -272,19 +272,31 @@ function plot_exceedance(
 end
 
 
-function plot_values!(p::Plots.Plot,fo::FitObject, v::AbstractVector{<:Real}, N::AbstractVector{<:Real}; kwargs...)
+function plot_values!(
+    p::Plots.Plot,
+    fo::FitObject,
+    v::AbstractVector{<:Real},
+    N::AbstractVector{<:Real};
+    kwargs...,
+)
 
-    probs = exceedance_probability(fo,v,N)
+    probs = exceedance_probability(fo, v, N)
 
-    plot!(p,
-		N,
-		v;
-		series_annotations = [(pi, :green, :bottom) for pi in round.(probs,digits=3)],
-		kwargs...
-	)
+    plot!(
+        p,
+        N,
+        v;
+        series_annotations = [(pi, :green, :bottom) for pi in round.(probs, digits = 3)],
+        kwargs...,
+    )
 end
 
-function plot_values(fo::FitObject, v::AbstractVector{<:Real}, N::AbstractVector{<:Real}; kwargs...)
-	p = plot()
-	return plot_values!(p,fo,v,N,kwargs...)
+function plot_values(
+    fo::FitObject,
+    v::AbstractVector{<:Real},
+    N::AbstractVector{<:Real};
+    kwargs...,
+)
+    p = plot()
+    return plot_values!(p, fo, v, N, kwargs...)
 end

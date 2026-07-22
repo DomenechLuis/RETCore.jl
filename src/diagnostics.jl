@@ -44,15 +44,12 @@ function prior_sensitivity(fo::FitObject)
     )
 
     fos = Dict{Symbol,FitObject}()
-    fos[:default] = FitObject(fo, copy_results=true)
+    fos[:default] = FitObject(fo, copy_results = true)
 
 
     for (name, priorfun) in pairs(priors)
         foi = FitObject(fo)
-        fit!(
-            foi;
-            prior = priorfun(fo.model)
-        )
+        fit!(foi; prior = priorfun(fo.model))
         fos[name] = foi
     end
 

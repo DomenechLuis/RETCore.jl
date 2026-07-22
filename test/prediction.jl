@@ -29,5 +29,10 @@ end
     fo = FitObject(normal_linear_model, data)
 
     @test_throws ArgumentError exceedance_probability(fo, [100.0, 200.0], [10.0])
-    @test_throws ArgumentError exceedance_probability(fo, [100.0, 200.0], [10.0, 20.0]; chains = :bad)
+    @test_throws ArgumentError exceedance_probability(
+        fo,
+        [100.0, 200.0],
+        [10.0, 20.0];
+        chains = :bad,
+    )
 end

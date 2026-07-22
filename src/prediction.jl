@@ -28,20 +28,26 @@ An upper tolerance limit U satisfies
 
     P(P(X ≤ U) ≥ reliability | data) = credibility
 """
-function tolerance_limit(fo::FitObject, reliability::Real, credibility::Real, v::Real; side::Symbol = :lower)
-	0.0 < reliability < 1.0 || throw(ArgumentError("reliability must be between 0 and 1"))
-	0.0 < credibility < 1.0 || throw(ArgumentError("credibility must be between 0 and 1"))
-	isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
+function tolerance_limit(
+    fo::FitObject,
+    reliability::Real,
+    credibility::Real,
+    v::Real;
+    side::Symbol = :lower,
+)
+    0.0 < reliability < 1.0 || throw(ArgumentError("reliability must be between 0 and 1"))
+    0.0 < credibility < 1.0 || throw(ArgumentError("credibility must be between 0 and 1"))
+    isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
 
-	if side == :lower
-		limit = quantile( quantile(fo, 1 - reliability, v ), 1 - credibility)
-	elseif side == :upper
-		limit = quantile( quantile(fo, reliability, v ), credibility)
-	else
-		throw(ArgumentError("side must be either :upper or :lower"))
-	end
+    if side == :lower
+        limit = quantile(quantile(fo, 1 - reliability, v), 1 - credibility)
+    elseif side == :upper
+        limit = quantile(quantile(fo, reliability, v), credibility)
+    else
+        throw(ArgumentError("side must be either :upper or :lower"))
+    end
 
-	return limit
+    return limit
 end
 
 
@@ -49,19 +55,23 @@ function exceedance_probability(fo::FitObject, v::Real, N::Real; kwargs...)
     return only(exceedance_probability(fo, v, [N]; kwargs...))
 end
 
-function exceedance_probability(fo::FitObject, v::AbstractVector{<:Real}, N::AbstractVector{<:Real}; kwargs...)
-	length(v) == length(N) || throw(ArgumentError("v and N must have the same length"))
-    return [exceedance_probability(fo, v[i], N[i]; kwargs...) for i in 1:length(v)]
+function exceedance_probability(
+    fo::FitObject,
+    v::AbstractVector{<:Real},
+    N::AbstractVector{<:Real};
+    kwargs...,
+)
+    length(v) == length(N) || throw(ArgumentError("v and N must have the same length"))
+    return [exceedance_probability(fo, v[i], N[i]; kwargs...) for i = 1:length(v)]
 end
 
 function exceedance_probability(
     fo::FitObject,
     v::AbstractVector{<:Real},
     N::AbstractVector{<:Real};
-    kwargs...
+    kwargs...,
 )
-    length(v) == length(N) ||
-        throw(ArgumentError("v and N must have the same length"))
+    length(v) == length(N) || throw(ArgumentError("v and N must have the same length"))
 
     exceedance_probability.(Ref(fo), v, N; kwargs...)
 end
@@ -103,8 +113,8 @@ end
 
 function exceedance_grid(
     fo::FitObject;
-    v_range = (100.0,160.0),
-    N_range = (1e8,1e10),
+    v_range = (100.0, 160.0),
+    N_range = (1e8, 1e10),
     v_res::Int = 100,
     N_res::Int = 100,
     chains = :all,

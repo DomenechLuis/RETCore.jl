@@ -1,16 +1,11 @@
 
-#@model function normal_linear_model(x, y)
-#    a ~ Normal(10, 10)# Intercept
-#    m ~ truncated(Normal(0, 12), -Inf, 0.0)# β ≤ 0
-#    s ~ Exponential(3)#  sd
-#
-#    @inbounds for i in eachindex(x)
-#        μ = a + m * x[i]
-#        Turing.@addlogprob! logpdf(Normal(μ, s), y[i])
-#    end
-#end
-
-@model function normal_linear_model(v, N, v_censored, n_censored; prior = prior_default(normal_linear_model))
+@model function normal_linear_model(
+    v,
+    N,
+    v_censored,
+    n_censored;
+    prior = prior_default(normal_linear_model),
+)
 
     a ~ prior.a
     m ~ prior.m
@@ -73,7 +68,11 @@ function prepare_data!(fo::FitObject{typeof(normal_linear_model)})
 end
 
 
-function log_log_quantile(fo::FitObject{typeof(normal_linear_model)}, prob::Real, logv::Real)
+function log_log_quantile(
+    fo::FitObject{typeof(normal_linear_model)},
+    prob::Real,
+    logv::Real,
+)
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 

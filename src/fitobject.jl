@@ -233,7 +233,7 @@ function fit!(fo::FitObject; prior = prior_default(fo.model))
 
     if isempty(fo.init)
         fo.chains = sample(
-            fo.model(vfit, Nfit, vfitc, Nfitc; prior=prior),
+            fo.model(vfit, Nfit, vfitc, Nfitc; prior = prior),
             sampler,
             MCMCThreads(),
             fo.n_samples,
@@ -242,7 +242,7 @@ function fit!(fo::FitObject; prior = prior_default(fo.model))
     else
         init_chain = InitFromParams(fo.init)
         fo.chains = sample(
-            fo.model(vfit, Nfit, vfitc, Nfitc; prior=prior),
+            fo.model(vfit, Nfit, vfitc, Nfitc; prior = prior),
             sampler,
             MCMCThreads(),
             fo.n_samples,
