@@ -7,7 +7,7 @@ RETCore.jl provides statistical tools for the analysis and interpretation of Rai
 ```julia
 using Pkg
 
-Pkg.add(url="https://github.com/usuario/RETCore.jl")
+Pkg.add(url="https://github.com/DomenechLuis/RETCore.jl")
 ```
 
 ## Example
