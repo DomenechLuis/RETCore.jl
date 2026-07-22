@@ -16,13 +16,16 @@ Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 [compat]
 Distributions = "0.25.129"
 FlexiChains = "0.6.33"
-LaTeXStrings = "1.4.0"
-Plots = "1.41.6"
-Random = "1.11.0"
-Statistics = "1.11.1"
+LaTeXStrings = "1.4"
+Plots = "1.41"
+Random = "1.11"
+Statistics = "1.11"
 StatsBase = "0.34.12"
-Turing = "0.46.0"
+Turing = "0.46"
+julia = "1.11"
 
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
