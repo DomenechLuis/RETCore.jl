@@ -103,7 +103,7 @@ end
 
 function exceedance_grid(
     fo::FitObject;
-    v_range = (100.0,160,0),
+    v_range = (100.0,160.0),
     N_range = (1e8,1e10),
     v_res::Int = 100,
     N_res::Int = 100,
