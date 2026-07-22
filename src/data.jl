@@ -15,6 +15,16 @@ struct DataObject{TX,TY}
 
     v_censored::TX
     N_censored::TY
+
+    function DataObject(v, N, v_censored, N_censored)
+
+        length(v) == length(N) || throw(ArgumentError("v and N must have the same length"))
+        length(v_censored) == length(N_censored) ||
+            throw(ArgumentError("v_censored and N_censored must have the same length"))
+
+        return new{typeof(v),typeof(N)}(v, N, v_censored, N_censored)
+    end
+
 end
 
 function DataObject(v, N)
@@ -22,14 +32,7 @@ function DataObject(v, N)
     DataObject(v, N, similar(v, 0), similar(N, 0))
 end
 
-function DataObject(v, N, v_censored, N_censored)
 
-    length(v) == length(N) || throw(ArgumentError("v and N must have the same length"))
-    length(v_censored) == length(N_censored) ||
-        throw(ArgumentError("v_censored and N_censored must have the same length"))
-
-    return DataObject{typeof(v),typeof(N)}(v, N, v_censored, N_censored)
-end
 
 function Base.vcat(d::DataObject...)
     DataObject(
@@ -196,6 +199,8 @@ v_aeronordic = [
 
 
 function capture_data(v_in, n_in, N_runout; v_array = v_aeronordic) #"v_array must be sorted"
+
+    issorted(v_array) || throw(ArgumentError("v_array must be sorted"))
 
     N_array = zeros(size(v_array)) .+ Inf
     for (vi, ni) in zip(v_in, n_in)

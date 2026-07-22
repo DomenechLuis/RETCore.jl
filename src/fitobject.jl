@@ -6,7 +6,6 @@ mutable struct FitObject{M}
     pre_data::Union{Nothing,DataObject}
 
     center_v::Bool
-    center_N::Bool
 
     n_warmup::Int
     n_samples::Int
@@ -17,7 +16,6 @@ mutable struct FitObject{M}
     init::NamedTuple
 
     vmean::Float64
-    Nmean::Float64
 
     chains::Any
 
@@ -30,14 +28,12 @@ function FitObject(
     raw_data;
     pre_data = nothing,
     center_v = false,
-    center_N = false,
     n_warmup = 20_000,
     n_samples = 5_000,
     n_chains = 4,
     target_accept = 0.85,
     init = NamedTuple(),
     vmean = 0.0,
-    Nmean = 0.0,
 )
 
     FitObject(
@@ -45,14 +41,12 @@ function FitObject(
         raw_data,
         pre_data,
         center_v,
-        center_N,
         n_warmup,
         n_samples,
         n_chains,
         target_accept,
         init,
         vmean,
-        Nmean,
         nothing,
         nothing,
     )
@@ -65,14 +59,12 @@ function FitObject(fo::FitObject; copy_results = false)
         fo.raw_data;
         pre_data = fo.pre_data,
         center_v = fo.center_v,
-        center_N = fo.center_N,
         n_warmup = fo.n_warmup,
         n_samples = fo.n_samples,
         n_chains = fo.n_chains,
         target_accept = fo.target_accept,
         init = fo.init,
         vmean = fo.vmean,
-        Nmean = fo.Nmean,
     )
 
     if copy_results
@@ -99,15 +91,6 @@ function preparedata_standard!(fo::FitObject)
         vc .-= fo.vmean
     else
         fo.vmean = 0.0
-    end
-
-    if fo.center_N
-        fo.Nmean = mean(N)
-
-        N .-= fo.Nmean
-        Nc .-= fo.Nmean
-    else
-        fo.Nmean = 0.0
     end
 
     fo.pre_data = DataObject(v, N, vc, Nc)

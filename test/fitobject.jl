@@ -12,7 +12,6 @@ using Turing: @varname
     @test fo.raw_data === data
     @test isnothing(fo.pre_data)
     @test fo.center_v == false
-    @test fo.center_N == false
     @test fo.n_warmup == 20_000
     @test fo.n_samples == 5_000
     @test fo.n_chains == 4
@@ -42,15 +41,12 @@ end
     @test fo.pre_data.v == log10.(data.v)
     @test fo.pre_data.N == log10.(data.N)
     @test fo.vmean == 0.0
-    @test fo.Nmean == 0.0
 
     # centring records the means and shifts the data
-    foc = FitObject(normal_linear_model, data; center_v = true, center_N = true)
+    foc = FitObject(normal_linear_model, data; center_v = true)
     prepare_data!(foc)
     @test foc.vmean ≈ mean(log10.(data.v))
-    @test foc.Nmean ≈ mean(log10.(data.N))
     @test foc.pre_data.v ≈ log10.(data.v) .- foc.vmean
-    @test foc.pre_data.N ≈ log10.(data.N) .- foc.Nmean
 end
 
 @testset "priors" begin
@@ -84,13 +80,13 @@ end
 end
 
 @testset "build_chain! centring formula" begin
-    # b = a - m*vmean + Nmean, for every centring combination
-    for (vmean, Nmean) in ((0.0, 0.0), (2.0, 0.0), (0.0, 3.0), (2.0, 3.0))
+    # b = a - m*vmean , for every centring combination
+    for vmean  in (0.0,2.0, 0.0, 2.0)
         fo = fit_with_chains(normal_linear_model; a = 25.0, m = -5.0, s = 1.0)
+        fo.center_v = true
         fo.vmean = vmean
-        fo.Nmean = Nmean
         RETCore.build_chain!(fo)
         b = fo.chains[@varname(b)]
-        @test all(≈(25.0 - (-5.0) * vmean + Nmean), b)
+        @test all(≈(25.0 - (-5.0) * vmean), b)
     end
 end

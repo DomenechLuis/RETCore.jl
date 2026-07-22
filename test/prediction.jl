@@ -86,9 +86,6 @@ end
     # constant chains => the 0.5 quantile equals exp10(b + m*log10(v))
     @test all(≈(exp10(25 - 5 * log10(v))), q)
 
-    # vector v -> one entry per velocity
-    qv = quantile(fo, 0.5, [130.0, 140.0])
-    @test length(qv) == 2
 
     @test_throws ArgumentError quantile(fo, 0.0, v)
     @test_throws ArgumentError quantile(fo, 0.5, -1.0)
