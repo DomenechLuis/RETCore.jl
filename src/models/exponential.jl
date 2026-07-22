@@ -1,6 +1,20 @@
+"""
+    exponential_linear_model(v, n, v_censored, n_censored; prior = prior_default(exponential_linear_model))
+
+Turing model for a linear RET curve with **one-sided exponential scatter** on the
+log10 scale.
+
+The linear prediction `pred = a + m·v` acts as an upper edge: the shortfall
+`d = pred - n` follows `d ~ Exponential(l)`, so observations fall on or below the
+line and cluster just under it. Values with `d ≤ 0` are rejected (`-Inf`), and
+censored points contribute `logcdf(Exponential(l), d)`.
+
+Parameters: intercept `a`, slope `m` (`≤ 0`) and exponential scale `l > 0`.
+Priors come from `prior` (fields `a`, `m`, `l`); see [`prior_default`](@ref).
+"""
 @model function exponential_linear_model(v, n, v_censored, n_censored; prior = prior_default(exponential_linear_model))
 
-	a ~ prior.a
+    a ~ prior.a
     m ~ prior.m
     l ~ prior.l
 
@@ -27,13 +41,25 @@
     end
 end
 
-function prepare_data!(fo::FitObject{typeof(exponential_linear_model)})
-    return preparedata_standard!(fo)
-end
+prior_default(::typeof(exponential_linear_model)) =
+    merge(_base_prior(:default), (l = Exponential(1.0),))
+
+prior_wide(::typeof(exponential_linear_model)) =
+    merge(_base_prior(:wide), (l = Exponential(1.0),))
+
+prior_optimistic(::typeof(exponential_linear_model)) =
+    merge(_base_prior(:optimistic), (l = Exponential(1.0),))
+
+prior_pessimistic(::typeof(exponential_linear_model)) =
+    merge(_base_prior(:pessimistic), (l = Exponential(1.0),))
+
+prior_high_scatter(::typeof(exponential_linear_model)) =
+    merge(_base_prior(:high_scatter), (l = Exponential(5.0),))
+
 
 function log_log_quantile(fo::FitObject{typeof(exponential_linear_model)}, prob::Real, logv::Real)
 
-    0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
+    0.0 < prob < 1.0 || throw(ArgumentError("prob must be between 0 and 1"))
 
     b = fo.chains[@varname(b)]
     m = fo.chains[@varname(m)]
@@ -44,44 +70,12 @@ function log_log_quantile(fo::FitObject{typeof(exponential_linear_model)}, prob:
     return q
 end
 
-function prior_default(::typeof(exponential_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-5, 2.0), -Inf, 0.0),
-        l = Exponential(1.0),
-    )
-end
 
-function prior_wide(::typeof(exponential_linear_model))
-    return (
-        a = Normal(25, 20),
-        m = truncated(Normal(-5.0, 5.0), -Inf, 0.0),
-        l = Exponential(1.0),
-    )
-end
-
-function prior_optimistic(::typeof(exponential_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-1.5, 1.0), -Inf, 0.0),
-        l = Exponential(1.0),
-    )
-end
-
-function prior_pessimistic(::typeof(exponential_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-12.0, 2.0), -Inf, 0.0),
-        l = Exponential(1.0),
-    )
-end
-
-function prior_high_scatter(::typeof(exponential_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-5.0, 2.0), -Inf, 0.0),
-        l = Exponential(5),
-    )
+# Per-draw exceedance kernel P(N_obs > N | draw) for the exponential model; the
+# generic `exceedance_probability` in prediction.jl averages it over the chains.
+function _exceedance_closure(fo::FitObject{typeof(exponential_linear_model)})
+    l = fo.chains[@varname(l)]
+    return (i, j, pred, N_log) -> cdf.(Exponential(l[i, j]), pred .- N_log)
 end
 
 
@@ -127,54 +121,4 @@ function plot_means!(
     end
 
     return p
-end
-
-
-
-function exceedance_probability(
-    fo::FitObject{typeof(exponential_linear_model)},
-    v::Real,
-    N::AbstractVector{<:Real};
-    chains = :all,
-)
-    isnothing(fo.chains) && throw(ArgumentError("the model has not been fitted"))
-
-    isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
-
-    isempty(N) && return Float64[]
-
-    all(ni -> isfinite(ni) && ni > 0, N) ||
-        throw(ArgumentError("all N values must be finite and strictly positive"))
-
-    v_log = log10(v)
-    N_log = log10.(N)
-
-    chain_indices = _chain_indices(fo, chains)
-
-    probability_sum = zeros(Float64, length(N_log))
-    nsamples_total = 0
-
-    b = fo.chains[@varname(b)]
-    m = fo.chains[@varname(m)]
-	l = fo.chains[@varname(l)]
-
-
-    for chain_index in chain_indices
-        @inbounds for sample_index in axes(b, 1)
-            
-			pred = b[sample_index, chain_index] + m[sample_index, chain_index]*v_log
-
-			d = pred .- N_log
-
-            distribution = Exponential(l[sample_index, chain_index])
-
-            probability_sum .+= cdf.(Ref(distribution), d)
-        end
-
-        nsamples_total += size(b, 1)
-    end
-
-    nsamples_total > 0 || error("the selected chains contain no posterior samples")
-
-    return probability_sum ./ nsamples_total
 end

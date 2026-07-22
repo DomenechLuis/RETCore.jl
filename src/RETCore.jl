@@ -23,12 +23,13 @@ export DataObject,
     exponential_linear_model,
     exceedance_probability,
     exceedance_grid,
+    tolerance_limit,
     plot_means!,
     plot_means,
-	plot_exceedance,
-	plot_exceedance!,
-	plot_values!,
-	plot_values,
+    plot_exceedance,
+    plot_exceedance!,
+    plot_values!,
+    plot_values,
     prior_sensitivity
 
 include("data.jl")

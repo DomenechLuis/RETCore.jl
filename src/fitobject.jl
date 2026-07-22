@@ -1,4 +1,28 @@
+"""
+    FitObject{M}
 
+Mutable container that bundles everything needed to fit a Bayesian RET model
+and to store its results.
+
+# Fields
+- `model`: the Turing model function (e.g. `normal_linear_model`). Its type `M`
+  is used for dispatch, so each model can specialise `prepare_data!`,
+  `exceedance_probability`, `plot_means!`, etc.
+- `raw_data::DataObject`: the observations in physical units.
+- `pre_data`: the transformed data actually passed to the sampler (log10 scale,
+  optionally centred). `nothing` until [`prepare_data!`](@ref) is called.
+- `center_v`, `center_N`: whether to centre the (log10) velocity / cycle counts
+  before sampling. Centring improves sampler geometry; the intercept is mapped
+  back to the original scale in [`build_chain!`](@ref).
+- `n_warmup`, `n_samples`, `n_chains`: NUTS sampler settings.
+- `target_accept`: NUTS target acceptance rate.
+- `init`: optional initial parameters (`NamedTuple`); empty means automatic.
+- `vmean`, `Nmean`: the means subtracted when centring (0 when not centring).
+- `chains`: the posterior samples (a `FlexiChain`), or `nothing` before fitting.
+- `diagnostics`: reserved for convergence diagnostics; `nothing` by default.
+
+Construct one with [`FitObject(model, raw_data; kwargs...)`](@ref).
+"""
 mutable struct FitObject{M}
 
     model::M
@@ -25,6 +49,27 @@ mutable struct FitObject{M}
 end
 
 
+"""
+    FitObject(model, raw_data; kwargs...)
+
+Build a [`FitObject`](@ref) for `model` (a Turing model function such as
+`normal_linear_model`) and a [`DataObject`](@ref) `raw_data`, leaving it ready
+for [`prepare_data!`](@ref) and [`fit!`](@ref).
+
+# Keyword arguments
+- `center_v`, `center_N` (`false`): centre log10 velocity / cycle counts.
+- `n_warmup` (`20_000`), `n_samples` (`5_000`), `n_chains` (`4`): NUTS settings.
+- `target_accept` (`0.85`): NUTS target acceptance rate.
+- `init` (`NamedTuple()`): optional initial parameters; empty means automatic.
+- `pre_data`, `vmean`, `Nmean`: advanced/internal; normally left at defaults.
+
+# Example
+```julia
+fo = FitObject(normal_linear_model, DataObject(v, N))
+prepare_data!(fo)
+fit!(fo)
+```
+"""
 function FitObject(
     model,
     raw_data;
@@ -113,6 +158,49 @@ function preparedata_standard!(fo::FitObject)
     fo.pre_data = DataObject(v, N, vc, Nc)
 
     return fo
+end
+
+
+"""
+    prepare_data!(fo::FitObject)
+
+Transform `fo.raw_data` into the representation the sampler expects and store it
+in `fo.pre_data`, returning `fo`.
+
+The standard preparation takes base-10 logarithms of both velocity and cycle
+counts and, when `fo.center_v` / `fo.center_N` are set, subtracts their means
+(recorded in `fo.vmean` / `fo.Nmean`). All current models share this behaviour,
+so this generic method handles them; a model may still specialise
+`prepare_data!(::FitObject{typeof(mymodel)})` if it needs something different.
+
+Must be called before [`fit!`](@ref).
+"""
+prepare_data!(fo::FitObject) = preparedata_standard!(fo)
+
+
+"""
+    _base_prior(scenario::Symbol) -> NamedTuple
+
+Return the intercept (`a`) and slope (`m`) priors shared by every model for a
+given `scenario` (`:default`, `:wide`, `:optimistic`, `:pessimistic` or
+`:high_scatter`). Each model completes this with its own dispersion parameters
+(`s`, `l`, …) via `merge`, which keeps the common location/slope beliefs defined
+in a single place. Internal helper.
+"""
+function _base_prior(scenario::Symbol)
+    a = scenario === :wide ? Normal(25, 20) : Normal(25, 10)
+
+    m = if scenario === :wide
+        truncated(Normal(-5.0, 5.0), -Inf, 0.0)
+    elseif scenario === :optimistic
+        truncated(Normal(-1.5, 1.0), -Inf, 0.0)
+    elseif scenario === :pessimistic
+        truncated(Normal(-12.0, 2.0), -Inf, 0.0)
+    else # :default and :high_scatter share the same location/slope
+        truncated(Normal(-5.0, 2.0), -Inf, 0.0)
+    end
+
+    return (a = a, m = m)
 end
 
 
@@ -220,6 +308,23 @@ Each model should implement its own version through multiple dispatch.
 """
 function prior_high_scatter end
 
+"""
+    fit!(fo::FitObject; prior = prior_default(fo.model)) -> fo
+
+Run NUTS sampling for `fo.model` on the prepared data and store the posterior in
+`fo.chains`, returning `fo`.
+
+[`prepare_data!`](@ref) must have been called first (otherwise an error is
+raised). Sampling uses `fo.n_chains` chains of `fo.n_samples` samples each, with
+`fo.n_warmup` warmup steps and target acceptance `fo.target_accept`, run over
+`MCMCThreads()`. If `fo.init` is non-empty it seeds every chain.
+
+`prior` selects the prior scenario (see [`prior_default`](@ref) and the
+`prior_wide` / `prior_optimistic` / `prior_pessimistic` / `prior_high_scatter`
+variants); it defaults to the model's recommended prior.
+
+After sampling, [`build_chain!`](@ref) adds the physical-scale intercept `b`.
+"""
 function fit!(fo::FitObject; prior = prior_default(fo.model))
 
     isnothing(fo.pre_data) && error("prepare_data! has not been called")
@@ -254,19 +359,26 @@ function fit!(fo::FitObject; prior = prior_default(fo.model))
     return fo
 end
 
+"""
+    build_chain!(fo::FitObject) -> fo
+
+Add the physical-scale intercept `b` to `fo.chains` from the sampled intercept
+`a` and slope `m`, undoing any centring applied by [`prepare_data!`](@ref).
+
+Because the model is fitted on centred data (`v' = v - vmean`, `N' = N - Nmean`),
+the fitted relationship `N' = a + m·v'` maps back to physical scale as
+`N = (a - m·vmean + Nmean) + m·v`, so the physical intercept is
+
+    b = a - m·vmean + Nmean
+
+When a coordinate is not centred its mean is `0`, so this single expression
+covers every combination of `center_v` / `center_N`.
+"""
 function build_chain!(fo::FitObject)
-
-    if !fo.center_v
-        fo.chains = FlexiChains.transform_values(
-            fo.chains,
-            [@varname(a)] => ((a) -> a) => @varname(b)
-        )
-        return fo
-    end
-
     fo.chains = FlexiChains.transform_values(
         fo.chains,
-        [@varname(a), @varname(m)] => ((a, m) -> a - m*fo.vmean) => @varname(b)
+        [@varname(a), @varname(m)] =>
+            ((a, m) -> a - m * fo.vmean + fo.Nmean) => @varname(b),
     )
     return fo
 end

@@ -1,4 +1,11 @@
+"""
+    plot!(p, fo::FitObject; n_lines = 100, v_range = (100.0, 160.0), color = :red, kwargs...)
+    plot(fo::FitObject; n_lines = 100, kwargs...)
 
+Overlay `n_lines` randomly sampled posterior mean lines (`N` vs `v`, physical
+scale) as translucent curves, visualising uncertainty in the fitted trend. The
+mutating form draws onto `p`; the non-mutating form creates a new plot.
+"""
 function plot!(
     p::Plots.Plot,
     fo::FitObject;
@@ -68,7 +75,14 @@ function _histogram2d_scale(fo::FitObject, vars; nbins = 40)
 end
 
 
+"""
+    histogram2d(fo::FitObject; vars = (@varname(b), @varname(m)), chains = :all, nbins = 40, kwargs...)
 
+Joint 2-D histogram of two posterior parameters (default: intercept `b` vs slope
+`m`). With `chains = :split` one panel per chain is drawn on a shared colour
+scale (useful to eyeball convergence); with `:all` or an integer the selected
+chains are pooled into a single histogram.
+"""
 function histogram2d(
     fo::FitObject;
     vars = (@varname(b), @varname(m)),
@@ -116,31 +130,32 @@ function histogram2d(
 
 end
 
-function plot_means(
-    fo::FitObject;
-    n_lines::Int = 5,
-    v_range = (100.0, 160.0),
-    curve_res = 20,
-    kwargs_mean = (color = :red,),
-    kwargs_curve = (color = :green,),
-)
+"""
+    plot_means(fo::FitObject; n_lines = 5, v_range = (100.0, 160.0), curve_res = 20, kwargs...)
+    plot_means!(p, fo::FitObject; ...)
 
+Plot the fitted mean/mode RET curve together with `n_lines` scaled scatter
+"profiles" that sketch the model's conditional distribution of `N` at several
+velocities. The exact curves are model-specific (see the per-model
+`plot_means!` methods). The non-mutating form returns a fresh plot.
+"""
+function plot_means(fo::FitObject; kwargs...)
     p = Plots.plot()
-
-    plot_means!(
-        p,
-        fo;
-        n_lines = n_lines,
-        v_range = v_range,
-        curve_res = curve_res,
-        kwargs_mean,
-        kwargs_curve,
-    )
-
+    plot_means!(p, fo; kwargs...)
     return p
 end
 
 
+"""
+    plot_exceedance(x; kwargs...)
+    plot_exceedance!(p, x; heatmap = true, iso_levels = [...], kwargs...)
+
+Draw the exceedance-probability field `P(N_obs > N | v)` as a heatmap with
+optional iso-probability contours. `x` may be either a grid `NamedTuple` from
+[`exceedance_grid`](@ref) or a fitted [`FitObject`](@ref) (in which case the grid
+is computed on the fly from `v_range`/`N_range`/`v_res`/`N_res`/`chains`). All
+functions return `(plot, grid)`. `iso_levels` must lie in `[0, 1]`.
+"""
 function plot_exceedance!(
     p::Plots.Plot,
     grid::NamedTuple;
@@ -211,7 +226,7 @@ end
 function plot_exceedance!(
     p::Plots.Plot,
     fo::FitObject;
-    v_range = (100.0,160,0),
+    v_range = (100.0, 160.0),
     N_range = (1e8,1e10),
     v_res::Int = 100,
     N_res::Int = 100,
@@ -243,7 +258,7 @@ function plot_exceedance!(
 end
 function plot_exceedance(
     fo::FitObject;
-    v_range = (100.0,160,0),
+    v_range = (100.0, 160.0),
     N_range = (1e8,1e10),
     v_res::Int = 100,
     N_res::Int = 100,
@@ -272,6 +287,14 @@ function plot_exceedance(
 end
 
 
+"""
+    plot_values(fo::FitObject, v, N; kwargs...)
+    plot_values!(p, fo::FitObject, v, N; kwargs...)
+
+Scatter the points `(N, v)` and annotate each with its exceedance probability
+`P(N_obs > N | v)` (rounded to 3 digits), a quick way to read off where given
+observations fall relative to the fitted model.
+"""
 function plot_values!(p::Plots.Plot,fo::FitObject, v::AbstractVector{<:Real}, N::AbstractVector{<:Real}; kwargs...)
 
     probs = exceedance_probability(fo,v,N)
@@ -286,5 +309,5 @@ end
 
 function plot_values(fo::FitObject, v::AbstractVector{<:Real}, N::AbstractVector{<:Real}; kwargs...)
 	p = plot()
-	return plot_values!(p,fo,v,N,kwargs...)
+	return plot_values!(p, fo, v, N; kwargs...)
 end

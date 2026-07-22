@@ -1,3 +1,19 @@
+"""
+    lognormal_linear_model(v, n, v_censored, n_censored; prior = prior_default(lognormal_linear_model))
+
+Turing model for a linear RET curve with **log-normal, mode-anchored scatter** on
+the log10 scale.
+
+The linear prediction `pred = a + m·v` marks the mode of the cycle count: with
+`z_mode = exp(l - s²)` the residual `z = pred + z_mode - n` follows
+`z ~ LogNormal(l, s)`, so the most likely value of `n` is `pred`. Residuals that
+would make `z ≤ 0` are rejected (`-Inf`). Censored points contribute
+`logcdf(LogNormal(l, s), z)`.
+
+Parameters: intercept `a`, slope `m` (`≤ 0`), log-scale scatter `s > 0` and the
+log-normal location `l`. Priors come from `prior` (fields `a`, `m`, `s`, `l`);
+see [`prior_default`](@ref).
+"""
 @model function lognormal_linear_model(v, n, v_censored, n_censored ; prior = prior_default(lognormal_linear_model))
 
     a ~ prior.a
@@ -33,59 +49,25 @@
 
 end
 
-function prior_default(::typeof(lognormal_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-5, 2.0), -Inf, 0.0),
-        s = Exponential(1.0),
-        l = Normal(0, 3.0)
-    )
-end
+prior_default(::typeof(lognormal_linear_model)) =
+    merge(_base_prior(:default), (s = Exponential(1.0), l = Normal(0, 3.0)))
 
-function prior_wide(::typeof(lognormal_linear_model))
-	return (
-		a = Normal(25, 20),
-		m = truncated(Normal(-5, 5.0), -Inf, 0.0),
-		s = Exponential(1.0),
-		l = Normal(0, 6.0)
-	)
-end
+prior_wide(::typeof(lognormal_linear_model)) =
+    merge(_base_prior(:wide), (s = Exponential(1.0), l = Normal(0, 6.0)))
 
-function prior_optimistic(::typeof(lognormal_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-1.5, 1.0), -Inf, 0.0),
-        s = Exponential(1.0),
-		l = Normal(0, 3.0)
-    )
-end
+prior_optimistic(::typeof(lognormal_linear_model)) =
+    merge(_base_prior(:optimistic), (s = Exponential(1.0), l = Normal(0, 3.0)))
 
-function prior_pessimistic(::typeof(lognormal_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-12.0, 2.0), -Inf, 0.0),
-        s = Exponential(1.0),
-		l = Normal(0, 3.0)
-    )
-end
+prior_pessimistic(::typeof(lognormal_linear_model)) =
+    merge(_base_prior(:pessimistic), (s = Exponential(1.0), l = Normal(0, 3.0)))
 
-function prior_high_scatter(::typeof(lognormal_linear_model))
-    return (
-        a = Normal(25, 10),
-        m = truncated(Normal(-5.0, 2.0), -Inf, 0.0),
-        s = Exponential(5),
-		l = Normal(0, 3.0)
-    )
-end
-
-function prepare_data!(fo::FitObject{typeof(lognormal_linear_model)})
-    return preparedata_standard!(fo)
-end
+prior_high_scatter(::typeof(lognormal_linear_model)) =
+    merge(_base_prior(:high_scatter), (s = Exponential(5.0), l = Normal(0, 3.0)))
 
 
 function log_log_quantile(fo::FitObject{typeof(lognormal_linear_model)}, prob::Real, logv::Real)
 
-    0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
+    0.0 < prob < 1.0 || throw(ArgumentError("prob must be between 0 and 1"))
 
     b = fo.chains[@varname(b)]
     m = fo.chains[@varname(m)]
@@ -99,6 +81,20 @@ function log_log_quantile(fo::FitObject{typeof(lognormal_linear_model)}, prob::R
 
     return q
 end
+
+
+# Per-draw exceedance kernel P(N_obs > N | draw) for the log-normal model; the
+# generic `exceedance_probability` in prediction.jl averages it over the chains.
+function _exceedance_closure(fo::FitObject{typeof(lognormal_linear_model)})
+    s = fo.chains[@varname(s)]
+    l = fo.chains[@varname(l)]
+    return function (i, j, pred, N_log)
+        z_mode = exp(l[i, j] - s[i, j]^2)
+        z = pred .+ z_mode .- N_log
+        return cdf.(LogNormal(l[i, j], s[i, j]), z)
+    end
+end
+
 
 function plot_means!(
     p::Plots.Plot,
@@ -143,55 +139,4 @@ function plot_means!(
     end
 
     return p
-end
-
-
-function exceedance_probability(
-    fo::FitObject{typeof(lognormal_linear_model)},
-    v::Real,
-    N::AbstractVector{<:Real};
-    chains = :all,
-)
-    isnothing(fo.chains) && throw(ArgumentError("the model has not been fitted"))
-
-    isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
-
-    isempty(N) && return Float64[]
-
-    all(ni -> isfinite(ni) && ni > 0, N) ||
-        throw(ArgumentError("all N values must be finite and strictly positive"))
-
-    v_log = log10(v)
-    N_log = log10.(N)
-
-    chain_indices = _chain_indices(fo, chains)
-
-    probability_sum = zeros(Float64, length(N_log))
-    nsamples_total = 0
-
-    b = fo.chains[@varname(b)]
-    m = fo.chains[@varname(m)]
-    s = fo.chains[@varname(s)]
-	l = fo.chains[@varname(l)]
-
-	z_mode = exp.(l - s.^2)
-
-    for chain_index in chain_indices
-        @inbounds for sample_index in axes(b, 1)
-            
-			pred = b[sample_index, chain_index] + m[sample_index, chain_index]*v_log
-
-			z = pred + z_mode[sample_index, chain_index] .- N_log
-
-            distribution = LogNormal(l[sample_index, chain_index], s[sample_index, chain_index])
-
-            probability_sum .+= cdf.(Ref(distribution), z)
-        end
-
-        nsamples_total += size(b, 1)
-    end
-
-    nsamples_total > 0 || error("the selected chains contain no posterior samples")
-
-    return probability_sum ./ nsamples_total
 end
