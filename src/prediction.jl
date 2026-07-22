@@ -15,6 +15,36 @@ function quantile(fo::FitObject, prob::Real, v::AbstractVector{<:Real})
     return exp10.(log_log_quantile.(Ref(fo), prob, log10.(v)))
 end
 
+"""
+tolerance_limit(fo::FitObject, reliability::Real, credibility::Real, v::Real; side::Symbol = :lower)
+
+Bayesian one-sided tolerance limit.
+
+A lower tolerance limit L satisfies
+
+    P(P(X ≥ L) ≥ reliability | data) = credibility
+
+An upper tolerance limit U satisfies
+
+    P(P(X ≤ U) ≥ reliability | data) = credibility
+"""
+function tolerance_limit(fo::FitObject, reliability::Real, credibility::Real, v::Real; side::Symbol = :lower)
+	0.0 < reliability < 1.0 || throw(ArgumentError("reliability must be between 0 and 1"))
+	0.0 < credibility < 1.0 || throw(ArgumentError("credibility must be between 0 and 1"))
+	isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
+
+	if side == :lower
+		limit = quantile( quantile(fo, 1 - reliability, v ), 1 - credibility)
+	elseif side == :upper
+		limit = quantile( quantile(fo, reliability, v ), credibility)
+	else
+		throw(ArgumentError("side must be either :upper or :lower"))
+	end
+
+	return limit
+end
+
+
 function exceedance_probability(fo::FitObject, v::Real, N::Real; kwargs...)
     return only(exceedance_probability(fo, v, [N]; kwargs...))
 end
