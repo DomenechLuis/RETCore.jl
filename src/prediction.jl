@@ -55,15 +55,6 @@ function exceedance_probability(fo::FitObject, v::Real, N::Real; kwargs...)
     return only(exceedance_probability(fo, v, [N]; kwargs...))
 end
 
-function exceedance_probability(
-    fo::FitObject,
-    v::AbstractVector{<:Real},
-    N::AbstractVector{<:Real};
-    kwargs...,
-)
-    length(v) == length(N) || throw(ArgumentError("v and N must have the same length"))
-    return [exceedance_probability(fo, v[i], N[i]; kwargs...) for i = 1:length(v)]
-end
 
 function exceedance_probability(
     fo::FitObject,
@@ -75,8 +66,6 @@ function exceedance_probability(
 
     exceedance_probability.(Ref(fo), v, N; kwargs...)
 end
-
-
 
 
 function _chain_indices(fo::FitObject, chains)
