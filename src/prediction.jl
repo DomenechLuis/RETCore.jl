@@ -1,10 +1,10 @@
 
 
-function quantile(fo::FitObject, prob::Real, v::Real)
+function quantile(fo::FitObject, prob::Real, v::Real; chains = :all)
     0.0 < prob < 1.0 || throw(ArgumentError("prob must be between 0 and 1"))
     isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
 
-    return exp10.(log_log_quantile(fo, prob, log10(v)))
+    return exp10.(log_log_quantile(fo, prob, log10(v), chains = chains))
 end
 
 
@@ -27,15 +27,16 @@ function tolerance_limit(
     credibility::Real,
     v::Real;
     side::Symbol = :lower,
+    chains = :all 
 )
     0.0 < reliability < 1.0 || throw(ArgumentError("reliability must be between 0 and 1"))
     0.0 < credibility < 1.0 || throw(ArgumentError("credibility must be between 0 and 1"))
     isfinite(v) && v > 0 || throw(ArgumentError("v must be finite and strictly positive"))
 
     if side == :lower
-        limit = quantile(quantile(fo, 1 - reliability, v), 1 - credibility)
+        limit = quantile(quantile(fo, 1 - reliability, v, chains = chains)[:], 1 - credibility)
     elseif side == :upper
-        limit = quantile(quantile(fo, reliability, v), credibility)
+        limit = quantile(quantile(fo, reliability, v, chains = chains)[:], credibility)
     else
         throw(ArgumentError("side must be either :upper or :lower"))
     end

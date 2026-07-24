@@ -40,14 +40,17 @@ end
 function log_log_quantile(
     fo::FitObject{typeof(exponential_linear_model)},
     prob::Real,
-    logv::Real,
+    logv::Real;
+    chains = :all
 )
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 
-    b = fo.chains[@varname(b)]
-    m = fo.chains[@varname(m)]
-    l = fo.chains[@varname(l)]
+    chain_indices = _chain_indices(fo,chains)
+
+    b = fo.chains[@varname(b)][:,chain_indices]
+    m = fo.chains[@varname(m)][:,chain_indices]
+    l = fo.chains[@varname(l)][:,chain_indices]
 
     q = b .+ m .* logv .- quantile.(Exponential.(l), 1.0 - prob)
 
@@ -101,7 +104,7 @@ function plot_means!(
     n_lines::Int = 5,
     v_range = (100.0, 160.0),
     curve_res = 100,
-    kwargs_mode = (color = :red,),
+    kwargs_mean = (color = :red,),
     kwargs_curve = (color = :green,),
 )
 
@@ -117,7 +120,7 @@ function plot_means!(
         exp10.(b_mean .+ m_mean .* log10.(v_array)),
         v_array;
         label = false,
-        kwargs_mode...,
+        kwargs_mean...,
     )
 
     q = range(0.001, 0.999, curve_res)

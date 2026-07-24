@@ -298,5 +298,5 @@ function plot_values(
     kwargs...,
 )
     p = plot()
-    return plot_values!(p, fo, v, N, kwargs...)
+    return plot_values!(p, fo, v, N; kwargs...)
 end

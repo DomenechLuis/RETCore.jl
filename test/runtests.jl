@@ -1,6 +1,14 @@
 using Test
 using RETCore
 
+#= 
+using Pkg
+Pkg.activate(".")
+Pkg.instantiate()
+using RETCore
+Pkg.test("RETCore")
+=#
+
 # Shared helpers (build FitObjects with injected constant chains, no MCMC).
 include("testutils.jl")
 

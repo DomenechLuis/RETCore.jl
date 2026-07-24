@@ -71,14 +71,17 @@ end
 function log_log_quantile(
     fo::FitObject{typeof(normal_linear_model)},
     prob::Real,
-    logv::Real,
+    logv::Real;
+    chains = :all
 )
 
     0.0 < prob < 1.0 || throw(ArgumentError("v must be finite and strictly positive"))
 
-    b = fo.chains[@varname(b)]
-    m = fo.chains[@varname(m)]
-    s = fo.chains[@varname(s)]
+    chain_indices = _chain_indices(fo,chains)
+
+    b = fo.chains[@varname(b)][:,chain_indices]
+    m = fo.chains[@varname(m)][:,chain_indices]
+    s = fo.chains[@varname(s)][:,chain_indices]
 
     q = quantile.(Normal.(b + m * logv, s), prob)
 

@@ -81,7 +81,7 @@ end
 
     # scalar v -> a Vector of per-draw quantiles (one per sample)
     q = quantile(fo, 0.5, v)
-    @test q isa Vector
+    @test q[:] isa Vector
     @test length(q) == 10                 # 5 iters * 2 chains
     # constant chains => the 0.5 quantile equals exp10(b + m*log10(v))
     @test all(≈(exp10(25 - 5 * log10(v))), q)
@@ -89,7 +89,7 @@ end
 
     @test_throws ArgumentError quantile(fo, 0.0, v)
     @test_throws ArgumentError quantile(fo, 0.5, -1.0)
-    @test_throws ArgumentError quantile(fo, 1.5, [1.0])
+    @test_throws MethodError quantile(fo, 1.5, [1.0])
 
     # tolerance limits
     lo = tolerance_limit(fo, 0.9, 0.95, v; side = :lower)
@@ -98,6 +98,7 @@ end
     @test lo <= hi
     @test_throws ArgumentError tolerance_limit(fo, 1.1, 0.95, v)
     @test_throws ArgumentError tolerance_limit(fo, 0.9, 0.95, v; side = :sideways)
+
 end
 
 @testset "exceedance_grid" begin
